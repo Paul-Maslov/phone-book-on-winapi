@@ -1,0 +1,634 @@
+//Написать программу «Телефонная книга», содержащая структуру с полями :
+//a.ФИО
+//b.Номер телефона
+//c.Email
+//Функции :
+//a) - добавления  в телефонную книгу "++"
+//b) - удаления из телефонной книги "++"
+//c) - сортировка по имени "++"
+//d) - проверка адреса электронной почты на нормальность(кол - во @ и точек, длина имени и домена и пр) "++;AA;BB", также проверить номер телефона на реальность(только цифры и спецсимволы)
+//e) - редактирование полей по выбору пользователя "++;AA;BB;"
+//f) - чтения данных из файла "++ в консоли;AA из форм;BB из меню"
+//g) - запись в файл "++;AA;BB"
+//h) - реализовать механизм, который позволял бы пользователю делать некоторые телефоны избранными, чтоб к ним был простой доступ и вывести список избранных. "++"
+//Стоит сказать, что за 100 % выполнение данных задач максимальная оценка – 10 баллов.Чтоб получить более высокую оценку необходимо добавить нечто,
+//не рассматриваемое в курсе и изученное самостоятельно – цветовое оформление"++", подключить управление при помощи клавиатуры или что то на свое усмотрение.
+
+
+# include <Windows.h>
+# include <WinUser.h>
+# include <string>
+# include <iostream>
+# include <regex>
+# include "SoftwareDefinitions.h"
+# include "resource.h"
+
+#pragma warning(disable : 4996)
+
+LRESULT CALLBACK SoftwareMainProcedure(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp);
+WNDCLASS NewWindowClass(HBRUSH BGColor, HCURSOR Cursor, HINSTANCE hInst, HICON Icon, LPCWSTR Name, WNDPROC Procedure);
+
+int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow)
+{
+	WNDCLASS SoftwareMainClass = NewWindowClass((HBRUSH)COLOR_WINDOW, LoadCursor(NULL, IDC_ARROW), hInst,
+		LoadIcon(hInst, MAKEINTRESOURCE(IDI_ICON1)), L"MainWndClass", SoftwareMainProcedure);
+	if (!RegisterClassW(&SoftwareMainClass)) { return -1; }
+	MSG SoftwareMainMessage = { 0 };
+
+	CreateWindow(L"MainWndClass", L"Phone book c++ window", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 800, 600, NULL, NULL, NULL, NULL);
+
+	while (GetMessage(&SoftwareMainMessage, NULL, NULL, NULL))
+	{
+		TranslateMessage(&SoftwareMainMessage);
+		DispatchMessage(&SoftwareMainMessage);
+	}
+
+}
+
+WNDCLASS NewWindowClass(HBRUSH BGColor, HCURSOR Cursor, HINSTANCE hInst, HICON Icon, LPCWSTR Name, WNDPROC Procedure)
+{
+	WNDCLASS NWC = { 0 };
+
+	NWC.hIcon = Icon;
+	NWC.hCursor = Cursor;
+	NWC.hInstance = hInst;
+	NWC.lpszClassName = Name;
+	NWC.hbrBackground = BGColor;
+	NWC.lpfnWndProc = Procedure;
+
+	return NWC;
+}
+
+LRESULT CALLBACK SoftwareMainProcedure(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
+{
+	switch (msg)
+	{
+	case WM_COMMAND:
+		switch (wp)
+		{
+		case Reading:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"You will load from note file!\nDo you want to load in ?",
+					L"Push nessesary button",
+					MB_ICONQUESTION | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					if (GetSaveFileNameA(&ofn)) { LoadData(filename); }
+				}
+				return msgboxID;
+			}
+			break;
+		case Writing:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"You will load to note file!\nDo you want to load out ?",
+					L"Push nessesary button",
+					MB_ICONQUESTION | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					if (GetSaveFileNameA(&ofn)) { SaveData(filename); }
+				}
+				return msgboxID;
+			}
+			break;
+		case Adding:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"You fill nessary forms!\nDo you want to load table form?",
+					L"Confirm Yes As",
+					MB_ICONINFORMATION | MB_OKCANCEL
+				);
+				if (msgboxID == IDOK)
+				{
+					GetWindowTextA(hLname, BuffL, TextBuffLname);
+					GetWindowTextA(hFname, BuffF, TextBuffFname);
+					GetWindowTextA(hSname, BuffS, TextBuffSname);
+					GetWindowTextA(hCoun, BuffC, TextBuffCoun);
+					GetWindowTextA(hPhone, BuffP, TextBuffPhone);
+					GetWindowTextA(hMail, BuffM, TextBuffMail);
+
+					strcpy(Buffer, BuffL);
+					strcat(Buffer, " ");
+					strcat(Buffer, BuffF);
+					strcat(Buffer, " ");
+					strcat(Buffer, BuffS);
+					strcat(Buffer, "/");
+					strcat(Buffer, BuffC);
+					strcat(Buffer, "-");
+					strcat(Buffer, BuffP);
+					strcat(Buffer, "/");
+					strcat(Buffer, BuffM);
+					strcat(Buffer, "/");
+
+					SetWindowTextA(hEditControl, Buffer);
+				}
+				return msgboxID;
+			}
+			break;
+		case Filling:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"You will fill special Forms\nfrom Table Form!\nDo you want to fill Special Forms?",
+					L"Push nessesary button",
+					MB_ICONQUESTION | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					GetWindowTextA(hEditControl, Buffer, TextBufferSize);
+					char* temp;
+					temp = strtok(Buffer, " ");
+					SetWindowTextA(hLname, temp);
+					temp = strtok(NULL, " ");
+					SetWindowTextA(hFname, temp);
+					temp = strtok(NULL, "/");
+					SetWindowTextA(hSname, temp);
+					temp = strtok(NULL, "-");
+					SetWindowTextA(hCoun, temp);
+					temp = strtok(NULL, "/");
+					SetWindowTextA(hPhone, temp);
+					temp = strtok(NULL, "/");
+					SetWindowTextA(hMail, temp);
+				}
+				return msgboxID;
+			}
+			break;
+		case Lname:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"You will fill Form Last name\nfrom Edit Form!\nDo you want to fill it?",
+					L"Push nessesary button",
+					MB_ICONQUESTION | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					GetWindowTextA(hEnterControl, BuffL, TextBuffLname);
+					SetWindowTextA(hLname, BuffL);
+				}
+				return msgboxID;
+			}
+			break;
+		case Fname:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"You will fill Form First name\nfrom Edit Form!\nDo you want to fill it?",
+					L"Push nessesary button",
+					MB_ICONQUESTION | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					GetWindowTextA(hEnterControl, BuffF, TextBuffFname);
+					SetWindowTextA(hFname, BuffF);
+				}
+				return msgboxID;
+			}
+			break;
+		case Sname:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"You will fill Form Second name\nfrom Edit Form!\nDo you want to fill it?",
+					L"Push nessesary button",
+					MB_ICONQUESTION | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					GetWindowTextA(hEnterControl, BuffS, TextBuffSname);
+					SetWindowTextA(hSname, BuffL);
+				}
+				return msgboxID;
+			}
+			break;
+		case Country:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"You will fill Form Country code\nfrom Edit Form!\nDo you want to fill it?",
+					L"Push nessesary button",
+					MB_ICONQUESTION | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					GetWindowTextA(hEnterControl, BuffC, TextBuffCoun);
+					SetWindowTextA(hCoun, BuffC);
+				}
+				return msgboxID;
+			}
+			break;
+		case Phone:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"You will fill Form Phone number\nfrom Edit Form!\nDo you want to fill it?",
+					L"Push nessesary button",
+					MB_ICONQUESTION | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					GetWindowTextA(hEnterControl, BuffP, TextBuffPhone);
+					SetWindowTextA(hPhone, BuffP);
+				}
+				return msgboxID;
+			}
+			break;
+		case Mail:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"You will fill Form E-mail adress\nfrom Edit Form!\nDo you want to fill it?",
+					L"Push nessesary button",
+					MB_ICONQUESTION | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					GetWindowTextA(hEnterControl, BuffM, TextBuffMail);
+					SetWindowTextA(hMail, BuffM);
+				}
+				return msgboxID;
+			}
+			break;
+		case SLname:
+			MessageBoxA(hWnd, "Menu was clicked", "Menu worked", MB_OK);
+			break;
+		case SFname:
+			MessageBoxA(hWnd, "Menu was clicked", "Menu worked", MB_OK);
+			break;
+		case SCoun:
+			MessageBoxA(hWnd, "Menu was clicked", "Menu worked", MB_OK);
+			break;
+		case CCoun:
+			k = 0;
+			GetWindowTextA(hCoun, BuffC, TextBuffCoun);
+			Length = GetWindowTextLength(hCoun) + 1;
+			temp1 = new char[Length];
+			strcpy(temp1, BuffC);
+			job = 1;
+			for (int i = 0; i < strlen(temp1);i++)
+			{
+				if (temp1[i] == '+')
+					k++;
+				else continue;
+			}
+			do
+			{
+				if (strlen(temp1) > 4 || strlen(temp1) < 2 )
+				{
+					MessageBoxA(hWnd, "You enter wrong\n LENGHT of Country Code\nNot more 4 symbols", "Code not accepted", MB_ICONSTOP | MB_OK);
+					job = 0;
+				}
+				else
+				{
+					if (k != 1)
+					{
+						MessageBoxA(hWnd, "You enter wrong\n FORM of code\nPattern FORM +000!", "Number not accepted", MB_ICONSTOP | MB_OK);
+						job = 0;
+					}
+					else
+					{
+						MessageBoxA(hWnd, "You enter valid Code", "Code accepted", MB_ICONINFORMATION | MB_OK);
+						job = 0;
+					}
+				}
+			} while (job);
+
+			delete[] temp1;
+			break;
+		case CPhone:
+			k = 0;
+			GetWindowTextA(hPhone, BuffP, TextBuffPhone);
+			Length = GetWindowTextLength(hPhone) + 1;
+			temp1 = new char[Length];
+			strcpy(temp1, BuffP);
+			job = 1;
+			for (int i = 0; i < strlen(temp1);i++)
+			{
+				if (temp1[i] == '-')
+					k++;
+				else continue;
+			}
+			do 
+			{
+				if (strlen(temp1) != 12)
+				{
+					MessageBoxA(hWnd, "You enter wrong\n LENGHT of number", "Number not accepted", MB_ICONSTOP | MB_OK);
+					job = 0;
+				}
+				else
+				{
+					if (k != 3)
+					{
+						MessageBoxA(hWnd, "You enter wrong\n FORM of number\nPattern FORM 00-000-00-00!", "Number not accepted", MB_ICONSTOP | MB_OK);
+						job = 0;
+					}
+					else
+					{
+						MessageBoxA(hWnd, "You enter valid number", "Number accepted", MB_ICONINFORMATION | MB_OK);
+						job = 0;
+					}
+				}
+			} while (job);
+
+			delete[] temp1;
+			
+			break;
+		case CMail:
+			k = 0;
+			k1 = 0;
+			k2 = 0;
+			GetWindowTextA(hMail, BuffM, TextBuffMail);
+			Length = GetWindowTextLength(hMail) + 1;
+			temp1 = new char[Length];
+			strcpy(temp1, BuffM);
+			job = 1;
+			for (int i = 0; i < strlen(temp1);i++)
+			{
+				if (temp1[i] == '@')
+					k++;
+				if (temp1[i] == '.')
+					k1++;
+				else continue;
+			}
+			for (int j = 0; j < strlen(temp1) + 1; j++)
+			{
+				if (temp1[j] == '&' || temp1[j] == '=' || temp1[j] == '+' || temp1[j] == '_' || temp1[j] == '<')
+					k2++;
+			}
+			do
+			{
+				if (k != 1)
+				{
+					MessageBoxA(hWnd, "Mail include wrong\n amount of '@'\nNeed only one", "Mail not accepted", MB_ICONSTOP | MB_OK);
+					job = 0;
+				}
+				else
+				{
+					if (k1 != 1)
+					{
+						MessageBoxA(hWnd, "Main include wrong\n amount of '.'\nNeed only one", "Mail not accepted!", MB_ICONSTOP | MB_OK);
+						job = 0;
+					}
+					else
+					{
+						if (k2 != 0)
+						{
+							MessageBoxA(hWnd, "Main include wrong\n symbols\n No need!", "Mail not accepted", MB_ICONSTOP | MB_OK);
+							job = 0;
+						}
+						else
+						{
+							MessageBoxA(hWnd, "You enter valid mail", "Mail accepted", MB_ICONINFORMATION | MB_OK);
+							job = 0;
+						}
+					}
+				}
+			} while (job);
+
+			delete[] temp1;
+			break;
+		case ReadDB:
+			MessageBoxA(hWnd, "Menu was clicked", "Menu worked", MB_OK);
+			break;
+		case SaveDB:
+			MessageBoxA(hWnd, "Menu was clicked", "Menu worked", MB_OK);
+			break;
+		case FLname:
+			MessageBoxA(hWnd, "Menu was clicked", "Menu worked", MB_OK);
+			break;
+		case FFname:
+			MessageBoxA(hWnd, "Menu was clicked", "Menu worked", MB_OK);
+			break;
+		case OnClearEnter:
+			SetWindowTextA(hEnterControl, "");
+			break;
+		case OnClearFields:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"Warning!\nDo you want to clear all fields!!!",
+					L"Confirm Yes As",
+					MB_ICONEXCLAMATION | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					SetWindowTextA(hEnterControl, "");
+					SetWindowTextA(hEditControl, "");
+					SetWindowTextA(hLname, "");
+					SetWindowTextA(hFname, "");
+					SetWindowTextA(hSname, "");
+					SetWindowTextA(hCoun, "");
+					SetWindowTextA(hPhone, "");
+					SetWindowTextA(hMail, "");
+				}
+				return msgboxID;
+			}
+			break;
+		case OnExitSoftware:
+			int DisplayConfirmSaveAsMessageBox();
+			{
+				int msgboxID = MessageBox(
+					NULL,
+					L"Warning!\nDo you want to exit programm?",
+					L"Confirm Yes As",
+					MB_ICONSTOP | MB_YESNO
+				);
+				if (msgboxID == IDYES)
+				{
+					PostQuitMessage(0);
+				}
+				return msgboxID;
+			}
+		default: break;
+		}
+
+			break;
+	case WM_CREATE:
+		MainWndAddMenus(hWnd);
+		MainWndAddWidgets(hWnd);
+		SetOpenFileParams(hWnd);
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+	default: return DefWindowProc(hWnd, msg, wp, lp);
+	}
+
+}
+
+void MainWndAddMenus(HWND hWnd)
+{
+	HMENU RootMenu = CreateMenu();
+	HMENU SubMenuR = CreateMenu();
+	HMENU SubMenuSave = CreateMenu();
+	HMENU SubMenuF = CreateMenu();
+	HMENU SubMenuE = CreateMenu();
+	HMENU ChooseEdit = CreateMenu();
+	HMENU SubMenuS = CreateMenu();
+	HMENU SubMenuC = CreateMenu();
+	HMENU SubMenuFind = CreateMenu();
+	HMENU SubMenuH = CreateMenu();
+
+	AppendMenu(RootMenu, MF_POPUP, (UINT_PTR)SubMenuF, L"File");
+
+	AppendMenu(SubMenuF, MF_POPUP, (UINT_PTR)SubMenuR, L"Read");
+	AppendMenu(SubMenuR, MF_STRING, Reading, L"From Note");
+	AppendMenu(SubMenuR, MF_STRING, ReadDB, L"From DataBase");
+
+	AppendMenu(SubMenuF, MF_POPUP, (UINT_PTR)SubMenuSave, L"Save");
+	AppendMenu(SubMenuSave, MF_STRING, Writing, L"To Note");
+	AppendMenu(SubMenuSave, MF_STRING, SaveDB, L"To DataBase");
+
+
+	AppendMenu(SubMenuF, MF_STRING, Show, L"Show");
+	AppendMenu(SubMenuF, MF_SEPARATOR, NULL, NULL);
+	AppendMenu(SubMenuF, MF_STRING, OnExitSoftware, L"Exit");
+
+	AppendMenu(RootMenu, MF_POPUP, (UINT_PTR)SubMenuE, L"Edit");
+	AppendMenu(SubMenuE, MF_STRING, OnClearFields, L"Clear");
+	AppendMenu(SubMenuE, MF_STRING, Adding, L"Add");
+	AppendMenu(SubMenuE, MF_STRING, Filling, L"Fill");
+	AppendMenu(SubMenuE, MF_POPUP, (UINT_PTR)ChooseEdit, L"Choose Edition");
+	AppendMenu(ChooseEdit, MF_STRING, Lname, L"Last name");
+	AppendMenu(ChooseEdit, MF_STRING, Fname, L"First name");
+	AppendMenu(ChooseEdit, MF_STRING, Sname, L"Second name");
+	AppendMenu(ChooseEdit, MF_STRING, Country, L"Country code");
+	AppendMenu(ChooseEdit, MF_STRING, Phone, L"Phone number");
+	AppendMenu(ChooseEdit, MF_STRING, Mail, L"E-mail address");
+
+	AppendMenu(RootMenu, MF_POPUP, (UINT_PTR)SubMenuS, L"Sort");
+	AppendMenu(SubMenuS, MF_STRING, SLname, L"Sort Last name");
+	AppendMenu(SubMenuS, MF_STRING, SFname, L"Sort First name");
+	AppendMenu(SubMenuS, MF_STRING, SCoun, L"Sort country");
+
+	AppendMenu(RootMenu, MF_POPUP, (UINT_PTR)SubMenuC, L"Check");
+	AppendMenu(SubMenuC, MF_STRING, CCoun, L"Check country code");
+	AppendMenu(SubMenuC, MF_STRING, CPhone, L"Check phone number");
+	AppendMenu(SubMenuC, MF_STRING, CMail, L"Check e-mail");
+
+	AppendMenu(RootMenu, MF_POPUP, (UINT_PTR)SubMenuFind, L"Find");
+	AppendMenu(SubMenuFind, MF_STRING, FLname, L"Find Last name");
+	AppendMenu(SubMenuFind, MF_STRING, FFname, L"Find First name");
+
+	AppendMenu(RootMenu, MF_STRING, (UINT_PTR)SubMenuH, L"Help");
+
+	SetMenu(hWnd, RootMenu);
+}
+void MainWndAddWidgets(HWND hWnd)
+{
+	hStaticControl = CreateWindowA("static", "My Phone book\nTable Form", WS_VISIBLE | WS_CHILD | ES_CENTER, 5, 5, 400, 50, hWnd, NULL, NULL, NULL);
+	CreateWindowA("static", "Enter info to load through menu", WS_VISIBLE | WS_CHILD | ES_CENTER, 405, 5, 220, 20, hWnd, NULL, NULL, NULL);
+	hEnterControl = CreateWindowA("edit", "", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 405, 25, 220, 20, hWnd, NULL, NULL, NULL);
+	hEditControl = CreateWindowA("edit", "", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 5, 52, 620, 40, hWnd,NULL, NULL, NULL);
+	CreateWindowA("static", "Enter info to Special Forms, that you want to fill", WS_VISIBLE | WS_CHILD | ES_CENTER, 5, 180, 620, 30, hWnd, NULL, NULL, NULL);
+    CreateWindowA("static", "Enter name, that you want to find", WS_VISIBLE | WS_CHILD | ES_CENTER, 5, 420, 620, 30, hWnd, NULL, NULL, NULL);
+
+	CreateWindowA("button", "Clear Enter", WS_VISIBLE | WS_CHILD, 650, 15, 100, 30, hWnd, (HMENU)OnClearEnter, NULL, NULL);
+	CreateWindowA("button", "Clear All", WS_VISIBLE | WS_CHILD, 650, 180, 100, 30, hWnd, (HMENU)OnClearFields, NULL, NULL);
+	CreateWindowA("button", "Check Code", WS_VISIBLE | WS_CHILD, 650, 215, 100, 30, hWnd, (HMENU)CCoun, NULL, NULL);
+	CreateWindowA("button", "Check Phone", WS_VISIBLE | WS_CHILD, 650, 250, 100, 30, hWnd, (HMENU)CPhone, NULL, NULL);
+	CreateWindowA("button", "Check Mail", WS_VISIBLE | WS_CHILD, 650, 285, 100, 30, hWnd, (HMENU)CMail, NULL, NULL);
+
+	CreateWindowA("button", "Add to Table Form", WS_VISIBLE | WS_CHILD | ES_CENTER, 120, 325, 200, 30, hWnd, (HMENU)Adding, NULL, NULL);
+	CreateWindowA("button", "Fill Special Forms", WS_VISIBLE | WS_CHILD | ES_CENTER, 10, 100, 150, 30, hWnd, (HMENU)Filling, NULL, NULL);
+	CreateWindowA("button", "Read from Note", WS_VISIBLE | WS_CHILD | ES_CENTER, 200, 100, 150, 30, hWnd, (HMENU)Reading, NULL, NULL);
+	CreateWindowA("button", "Save to Note", WS_VISIBLE | WS_CHILD | ES_CENTER, 400, 100, 150, 30, hWnd, (HMENU)Writing, NULL, NULL);
+
+	CreateWindowA("button", "Find Last name", WS_VISIBLE | WS_CHILD, 118, 490, 150, 30, hWnd, NULL, NULL, NULL);
+	CreateWindowA("button", "Find First name", WS_VISIBLE | WS_CHILD, 425, 490, 150, 30, hWnd, NULL, NULL, NULL);
+
+	CreateWindowA("button", "Exit", WS_VISIBLE | WS_CHILD, 650, 430, 100, 30, hWnd, (HMENU)OnExitSoftware, NULL, NULL);
+
+	CreateWindowA("static", "Last name", WS_VISIBLE | WS_CHILD, 5, 220, 100, 20, hWnd, NULL, NULL, NULL);
+	hLname = CreateWindowA("edit", "", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 120, 220, 200, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowA("static", "First name", WS_VISIBLE | WS_CHILD, 5, 260, 100, 20, hWnd, NULL, NULL, NULL);
+	hFname = CreateWindowA("edit", "", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 120, 260, 200, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowA("static", "Second name", WS_VISIBLE | WS_CHILD, 5, 300, 100, 20, hWnd, NULL, NULL, NULL);
+	hSname = CreateWindowA("edit", "", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 120, 300, 200, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowA("static", "Country", WS_VISIBLE | WS_CHILD | ES_CENTER, 300, 220, 100, 20, hWnd, NULL, NULL, NULL);
+	hCoun = CreateWindowA("edit", "", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 425, 220, 200, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowA("static", "Phone", WS_VISIBLE | WS_CHILD | ES_CENTER, 300, 260, 100, 20, hWnd, NULL, NULL, NULL);
+	hPhone = CreateWindowA("edit", "", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 425, 260, 200, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowA("static", "E-mail", WS_VISIBLE | WS_CHILD | ES_CENTER, 300, 300, 100, 20, hWnd, NULL, NULL, NULL);
+	hMail = CreateWindowA("edit", "", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 425, 300, 200, 20, hWnd, NULL, NULL, NULL);
+
+	CreateWindowA("static", "Last name", WS_VISIBLE | WS_CHILD, 5, 460, 100, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowA("edit", "", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 120, 460, 200, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowA("static", "First name", WS_VISIBLE | WS_CHILD | ES_CENTER, 300, 460, 100, 20, hWnd, NULL, NULL, NULL);
+	CreateWindowA("edit", "", WS_VISIBLE | WS_CHILD | ES_MULTILINE | WS_VSCROLL, 425, 460, 200, 20, hWnd, NULL, NULL, NULL);
+	
+};
+
+
+void SaveData(LPCSTR(path))
+{
+	HANDLE FileToSave = CreateFileA(
+		path,
+		GENERIC_WRITE,
+		0,
+		NULL,
+		CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+
+	int saveLength = GetWindowTextLength(hEditControl) + 1;
+	char* data = new char[saveLength];
+
+	saveLength = GetWindowTextA(hEditControl, data, saveLength);
+
+	DWORD bytesIterated;
+
+	WriteFile(FileToSave, data, saveLength, &bytesIterated, NULL);
+
+	CloseHandle(FileToSave);
+	delete[] data;
+
+}
+void LoadData(LPCSTR(path))
+{
+	HANDLE FileToLoad = CreateFileA(
+		path,
+		GENERIC_READ,
+		0,
+		NULL,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+
+	DWORD bytesIterated;
+	ReadFile(FileToLoad, Buffer, TextBufferSize, &bytesIterated, NULL);
+
+	SetWindowTextA(hEditControl, Buffer);
+
+	CloseHandle(FileToLoad);
+}
+
+void SetOpenFileParams(HWND hWnd)
+{
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = hWnd;
+	ofn.lpstrFile = filename;
+	ofn.nMaxFile = sizeof(filename);
+	ofn.lpstrFilter = "*.txt";
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+}
